@@ -1,0 +1,196 @@
+class vtfRunner{
+   static void main(string...args){
+   def params args as List
+//********************Application security Scan********************
+  Boolean isCxScanExecuted = true
+  Boolean isSqScanExecuted = true
+  Boolean isIqScanExecuted = true
+  Boolean isNsScanExecuted = true
+//***************Application Security Scan********************
+
+//********************Input Parameters********************
+  string cxUserName ="HBEU\\"+params.get(0)
+  string cxPassword=params.get(1)
+  string iqUserName=params.get(0)
+  string iqPassword=params.get(1)
+  string sqUserName=params.get(0)
+  string sqPassword=params.get(1)
+  string nsUserName=params.get(0)
+  string nsPassword=params.get(1)
+  string buildUrl=params.get(2)
+  string scmCommitId=fetchScmCommitId()
+
+
+//********************工nPut Parameters********************
+   Map config = [
+     "sonar":[
+       [
+          "sonarRunner": isSqScanExecuted,
+          "applyQualityGate": true,
+          "techDebtLevel": "low",
+          "ur1":"https://devsupport-sonar.it.global.hsbc:9009/sonar"
+          "projectKey": "",
+          "branch":""
+        ]
+     ],
+
+     "sonatype": [
+        [
+          "isScanQualityCheck": isIqScanExecuted,
+          "iqAppName": "",
+          "iqAppVersion": "",
+          "iq0rg: "",
+          "iqTag": "Used within a business application on an HSBc server",
+          "iqServiceTier": "service Tier 3",
+          "iqStage": "release",
+          "iqScanTarget": "",
+          "url": "https://sonatypeiq.systems.uk.hsbc:8443",
+          "reportFileDirectory": "",
+        ]
+     ]
+
+//********************checkmarx on-Prem sample Configuration********************
+      "checkmarx": [
+         [
+          "projectName":"",
+          "teamName":"",
+          "preset":"36",
+          "incrementalScan":true,
+          "asynchronousScan":false,
+          "avoidDuplicateProjectScans";true,
+          "failBuildOnNewResults":true,
+          "failBuildOnNewSeverity":"low",
+           "technicalDebtThreshold":"lowTechDebt",
+           "shardServer":"https://its-checkmarx01.systems.uk.hsbc"
+          ],
+
+//********************Cyberflows SAST Sample Configuration********************
+          [
+           "projectName":"",
+            "teamName": "",
+            "preset":"",
+            "incrementalScan":true,
+            "asynchronousScan":false,
+            "avoidDuplicateProjectScans":true,
+            "failBuildOnNewResults":true,
+            "failBuildOnNewSeverity":"low",
+            "technicalDebtThreshold":"lowTechDebt",
+            "shardServer":"https://its-checkmarx01.systems.uk.hsbc",
+            "scanMode":"Cyberflows",
+            "cyberflowsUrl":"https://cyberflows.systems.uk.hsbc",
+            "cyberflowsScanId":"",
+           ]
+       ],
+
+       "netsparker": [
+           [
+             "projectName":"",
+             "asynchronousScan":false,
+             "technicalDebtThreshold":"lowTechDebt",
+             "cyberflowsUrl":"https://cyberflows.systems.uk.hsbc",
+             "cyberflowsScanId":""
+           ]
+       ],
+
+       "jenkins":[
+          "isUnix":true
+       ],
+
+       "rocketLauncher":[
+          "psId":"",
+          "userName":"",
+          "emailId":"",
+          "eimId":"",
+          "jenkinsJobUrl":"${buildUrl)",
+          "gitRepoUrl":"",
+          "technology":"Java",
+          "commitId":"${scmCommitId}",
+          "branch":"",
+          "url":"http://hkl20156023.hc.cloud.hk.hsbc:8098"
+       ],
+
+       "autoIce":[
+           "publishvtfSummary":true,
+           "eimId":"",
+           "gbgf":"",
+           "projectName":"",
+           "cometId":"",
+           "jiraRef":"",
+           "jiraInstance":"",
+//scmInstance is needed only if you are using GIT and JIRA from diff stacks
+           "scmInstance":"",
+           "repoName":"",
+           "repoBranch":"",
+           "releaseArtifactRepoInstance":"",
+           "releaseArtifactRepoName":"",
+           "gsdGroup":"",
+//codeReviewUrls is needed only if you are using GIT and JIRA from diff stacks.e.g.ALM GitHub and GBM JI
+           "codeChangeType":"",
+           "codeReviewUrls":[],
+           "group":"",
+           "artifact":""
+           "version":"",
+           "classifier":"",
+           "extensions":"",
+           "tagPrefix":"",
+           "tagSuffix":"",
+           "url";"https://auto-ice.uk.hsbc",
+//********************DO NOT SPECIFY DAST ATTRIBUTES IF CYBERFLOWS DAST SCAN IS CONFIGURED*******************
+           "dastScanUrl":""
+           "dastIssueCountCritical":0,
+           "dastIssueCountHigh":0,
+           "dastIssueCountMedium":0
+//********************DO NOT SPECIFY DAST ATTRIBUTES IF CYBERFLOWS DAST SCAN IS CONFIGURED*******************
+            ]
+         ]
+
+         try{
+             GroovyShell shell =  new GroovyShell()
+             def scanRunner shell.parse(new File('./auto-ice-plugin/auto-ice/vtfScanner.groovy'))
+//********************VTF post sonarQube,sonaType IQ,Checkmarx/Cyberflows SAST Scan********************
+             scanRunner.executeVtf(config,isSqScanExecuted,isCxScanExecuted,isIqScanExecuted,iqUserName,iqPassword,cxUserName
+
+         }finally {
+          new File('auto-ice-plugin').deleteDir()
+          new File('.').eachFileRecurse(groovy.io.FileType.FILES){
+              if(it.name.startsWith('auto-ice-plugin-')){
+                 it.delete()
+              }
+            }
+          new File('report-task.txt').delete()
+          new File('cyberflows-task.txt').delete()
+          new File('scanStatus.txt').delete()
+          new File('CyberflowsScanStatus.txt').delete()
+         }
+       }
+
+      def static fetchScmCommitId(){
+          def commitCommand ="/build_tools/git/2.17.1/bin/git log -n 1--pretty=format:%H"
+          def commitProcess = commitCommand.execute()
+              commitProcess.waitFor()
+          def scmCommitId = commitProcess.in.text
+          println "SCM_COMMIT_ID:${scmCommitId}"
+          return scmCommitId
+      }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
